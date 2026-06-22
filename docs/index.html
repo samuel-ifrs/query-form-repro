@@ -72,10 +72,21 @@
 
   <div class="note">
     <b>What this shows:</b> the <code>method="query"</code> form makes the server report method <b>GET</b> (its body
-    dropped) — an unknown form method falls back to GET, which is the core gap #12594 is about. Issuing QUERY from
-    script (<code>fetch()</code>) is a separate matter; see the
-    <a href="https://github.com/samuel-ifrs/query-form-repro#run">Node version</a> in this repo for that.
+    dropped) — an unknown form method falls back to GET, which is the core gap #12594 is about.
   </div>
+
+  <h2>Testing QUERY via <code>fetch()</code></h2>
+  <p class="sub">Unlike forms, <code>fetch()</code> <em>can</em> issue QUERY (the Fetch Standard allows arbitrary
+  method names). This page can't demonstrate it, though: GitHub Pages is static, and a cross-origin QUERY needs both
+  a CORS preflight <em>and</em> a server that doesn't reject the method (many — e.g. LiteSpeed — return
+  <code>400</code> before the app runs).</p>
+  <p class="sub">To see QUERY actually travel on the wire, run the zero-dependency Node server in this repo — it
+  echoes the method same-origin, with no CORS or server-method blocking in the way:</p>
+  <pre>git clone https://github.com/samuel-ifrs/query-form-repro
+cd query-form-repro
+node server.js          # then open http://localhost:8790</pre>
+  <p class="sub">Click <b>Submit (query)</b> there and the server logs <code>actual=QUERY</code>. See the
+  <a href="https://github.com/samuel-ifrs/query-form-repro#run">README</a> for details.</p>
 
   <script>
     // Where echo.php is hosted. Edit if you deploy it elsewhere.
