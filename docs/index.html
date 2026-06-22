@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HTTP QUERY: &lt;form&gt; vs fetch() — live demo</title>
+  <title>HTTP QUERY in &lt;form&gt; submissions — live demo</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -33,13 +33,13 @@
   </style>
 </head>
 <body><div class="wrap">
-  <h1>HTTP QUERY: <code>&lt;form&gt;</code> vs <code>fetch()</code> — live demo</h1>
+  <h1>HTTP QUERY in <code>&lt;form&gt;</code> submissions — live demo</h1>
   <p class="sub">Repro for <a href="https://github.com/whatwg/html/issues/12594">whatwg/html#12594</a>.
-  Each form and the fetch button submit to a small QUERY-aware
+  Each form submits to a small
   <a href="https://github.com/samuel-ifrs/query-form-repro/blob/master/echo.php">echo.php</a>, which reports the
   HTTP method it actually received.</p>
 
-  <h2>1. HTML forms (no JavaScript)</h2>
+  <h2>HTML forms (no JavaScript)</h2>
   <p class="sub">Three identical forms; only the <code>method</code> attribute differs. Click each and read the
   big method on the result page.</p>
   <div class="grid">
@@ -70,44 +70,18 @@
     </form>
   </div>
 
-  <h2>2. fetch() for comparison</h2>
-  <p class="sub">Same QUERY method via <code>fetch()</code>. Because <code>echo.php</code> allows QUERY in its CORS
-  preflight, this cross-origin call goes through (a preflight <code>OPTIONS</code> fires first — see DevTools → Network).</p>
-  <button id="fetchBtn" style="max-width:280px">Send QUERY via fetch()</button>
-  <pre id="out">(result appears here)</pre>
-
   <div class="note">
-    <b>Expected:</b> the <code>method="query"</code> form makes the server report method <b>GET</b> (its body dropped)
-    — an unknown form method falls back to GET. The <code>fetch()</code> call reports <b>QUERY</b>. That contrast is
-    the gap #12594 is about: QUERY is reachable from script, but not from declarative forms.
+    <b>What this shows:</b> the <code>method="query"</code> form makes the server report method <b>GET</b> (its body
+    dropped) — an unknown form method falls back to GET, which is the core gap #12594 is about. Issuing QUERY from
+    script (<code>fetch()</code>) is a separate matter; see the
+    <a href="https://github.com/samuel-ifrs/query-form-repro#run">Node version</a> in this repo for that.
   </div>
 
   <script>
-    // ⬇⬇⬇ EDIT THIS to point at where you host echo.php ⬇⬇⬇
-    const ENDPOINT = 'https://YOUR-SITE.example/echo.php';
-    // ⬆⬆⬆ -------------------------------------------- ⬆⬆⬆
+    // Where echo.php is hosted. Edit if you deploy it elsewhere.
+    const ENDPOINT = 'https://devsa.com.br/echo/echo.php';
 
     // Point every form at the endpoint.
     for (const f of document.querySelectorAll('form')) f.action = ENDPOINT;
-
-    document.getElementById('fetchBtn').addEventListener('click', async () => {
-      const out = document.getElementById('out');
-      out.textContent = 'sending QUERY via fetch…';
-      try {
-        const res = await fetch(ENDPOINT, {
-          method: 'QUERY',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Maria', filter: 'electronics', __intended: 'QUERY' })
-        });
-        const d = await res.json();
-        const ok = d.method === 'QUERY';
-        out.innerHTML = '<span class="' + (ok ? 'ok' : 'warn') + '">echo server received method: ' + d.method + '</span>\n\n' +
-          '<span class="k">body the server saw:</span> ' + JSON.stringify(d.body) +
-          '\n\n(QUERY is not CORS-safelisted → a preflight OPTIONS fired first; echo.php allowed it.)';
-      } catch (e) {
-        out.innerHTML = '<span class="warn">failed: ' + e.message + '</span>\n\n' +
-          'Check that ENDPOINT points to your echo.php and that it is reachable over HTTPS.';
-      }
-    });
   </script>
 </div></body></html>
