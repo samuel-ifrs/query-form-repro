@@ -35,31 +35,35 @@
 <body><div class="wrap">
   <h1>HTTP QUERY: <code>&lt;form&gt;</code> vs <code>fetch()</code> — live demo</h1>
   <p class="sub">Repro for <a href="https://github.com/whatwg/html/issues/12594">whatwg/html#12594</a>.
-  Each form submits to <a href="https://httpbingo.org/anything">httpbingo.org/anything</a>, which echoes back
-  the HTTP method it actually received. No install required.</p>
+  Each form and the fetch button submit to a small QUERY-aware
+  <a href="https://github.com/samuel-ifrs/query-form-repro/blob/master/echo.php">echo.php</a>, which reports the
+  HTTP method it actually received.</p>
 
   <h2>1. HTML forms (no JavaScript)</h2>
-  <p class="sub">Three identical forms; only the <code>method</code> attribute differs. After you click, look at
-  the <code>"method"</code> field in the JSON the echo server returns.</p>
+  <p class="sub">Three identical forms; only the <code>method</code> attribute differs. Click each and read the
+  big method on the result page.</p>
   <div class="grid">
     <!-- method="query" is an invalid form method → browser uses the invalid-value default (GET) -->
-    <form class="q" method="query" action="https://httpbingo.org/anything">
+    <form class="q" method="query">
       <span class="name">method="query"</span>
       <span class="tag">the test — expected to fall back to GET</span>
+      <input type="hidden" name="__intended" value="QUERY">
       <label>Name</label><input name="name" value="Maria">
       <label>Filter</label><input name="filter" value="electronics">
       <button>Submit (query)</button>
     </form>
-    <form method="post" action="https://httpbingo.org/anything">
+    <form method="post">
       <span class="name">method="post"</span>
       <span class="tag">control</span>
+      <input type="hidden" name="__intended" value="POST">
       <label>Name</label><input name="name" value="Maria">
       <label>Filter</label><input name="filter" value="electronics">
       <button>Submit (post)</button>
     </form>
-    <form method="get" action="https://httpbingo.org/anything">
+    <form method="get">
       <span class="name">method="get"</span>
       <span class="tag">control</span>
+      <input type="hidden" name="__intended" value="GET">
       <label>Name</label><input name="name" value="Maria">
       <label>Filter</label><input name="filter" value="electronics">
       <button>Submit (get)</button>
@@ -67,36 +71,42 @@
   </div>
 
   <h2>2. fetch() for comparison</h2>
-  <p class="sub">Same QUERY method, but issued via <code>fetch()</code> instead of a form.</p>
+  <p class="sub">Same QUERY method via <code>fetch()</code>. Because <code>echo.php</code> allows QUERY in its CORS
+  preflight, this cross-origin call goes through (a preflight <code>OPTIONS</code> fires first — see DevTools → Network).</p>
   <button id="fetchBtn" style="max-width:280px">Send QUERY via fetch()</button>
   <pre id="out">(result appears here)</pre>
 
   <div class="note">
-    <b>Expected result:</b> the <code>method="query"</code> form makes the echo server report
-    <code>"method": "GET"</code> (its body dropped), because HTML only defines <code>get</code>/<code>post</code>
-    as form methods and an unknown value falls back to GET. The <code>fetch()</code> call, by contrast, reports
-    <code>"method": "QUERY"</code>. This is the gap #12594 is about.
+    <b>Expected:</b> the <code>method="query"</code> form makes the server report method <b>GET</b> (its body dropped)
+    — an unknown form method falls back to GET. The <code>fetch()</code> call reports <b>QUERY</b>. That contrast is
+    the gap #12594 is about: QUERY is reachable from script, but not from declarative forms.
   </div>
 
   <script>
+    // ⬇⬇⬇ EDIT THIS to point at where you host echo.php ⬇⬇⬇
+    const ENDPOINT = 'https://YOUR-SITE.example/echo.php';
+    // ⬆⬆⬆ -------------------------------------------- ⬆⬆⬆
+
+    // Point every form at the endpoint.
+    for (const f of document.querySelectorAll('form')) f.action = ENDPOINT;
+
     document.getElementById('fetchBtn').addEventListener('click', async () => {
       const out = document.getElementById('out');
       out.textContent = 'sending QUERY via fetch…';
       try {
-        const res = await fetch('https://httpbingo.org/anything', {
+        const res = await fetch(ENDPOINT, {
           method: 'QUERY',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Maria', filter: 'electronics' })
+          body: JSON.stringify({ name: 'Maria', filter: 'electronics', __intended: 'QUERY' })
         });
         const d = await res.json();
         const ok = d.method === 'QUERY';
-        out.innerHTML = '<span class="' + (ok ? 'ok' : 'warn') + '">echo server received method: ' +
-          d.method + '</span>\n\n' +
-          '<span class="k">body the server saw:</span> ' + (d.data || '(none)') +
-          '\n\n(a cross-origin QUERY triggers a CORS preflight OPTIONS first — visible in DevTools → Network)';
+        out.innerHTML = '<span class="' + (ok ? 'ok' : 'warn') + '">echo server received method: ' + d.method + '</span>\n\n' +
+          '<span class="k">body the server saw:</span> ' + JSON.stringify(d.body) +
+          '\n\n(QUERY is not CORS-safelisted → a preflight OPTIONS fired first; echo.php allowed it.)';
       } catch (e) {
-        out.innerHTML = '<span class="warn">failed: ' + e.message +
-          '\n(httpbingo.org may be down — try again, or use the Node version in the repo)</span>';
+        out.innerHTML = '<span class="warn">failed: ' + e.message + '</span>\n\n' +
+          'Check that ENDPOINT points to your echo.php and that it is reachable over HTTPS.';
       }
     });
   </script>

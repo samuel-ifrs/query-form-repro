@@ -42,6 +42,23 @@ Watch the server terminal: each submission is logged with an `intended` vs `actu
 >> /submit  intended=QUERY  actual=QUERY  via=fetch data={"name":"Maria","filter":"electronics"}
 ```
 
+## `echo.php` — a QUERY-aware endpoint for the live demo
+
+GitHub Pages is static, and **no public echo service safelists QUERY in its CORS preflight**
+(checked httpbingo.org, beeceptor, hoppscotch — none list QUERY in `Access-Control-Allow-Methods`),
+so a cross-origin QUERY `fetch()` from the Pages demo gets blocked. That CORS gap is itself a data
+point for this issue's open "is QUERY CORS-safelisted?" question.
+
+`echo.php` solves it: host it on any PHP server and it
+
+- answers the CORS preflight **allowing QUERY**, so cross-origin `fetch(url, {method:'QUERY'})` works;
+- renders a nice HTML result page on form navigation, and returns JSON to `fetch()`
+  (it switches on `Sec-Fetch-Mode`);
+- compares the `__intended` method against the one that actually arrived.
+
+Then edit the `ENDPOINT` constant in [`docs/index.html`](docs/index.html) to point at your hosted
+`echo.php`.
+
 ## Why QUERY is a good fit for forms
 
 Because QUERY is **safe and idempotent**, a `<form method="query">` submission would —
