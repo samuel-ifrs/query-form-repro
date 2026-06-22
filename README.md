@@ -3,6 +3,8 @@
 A zero-dependency repro for [whatwg/html#12594](https://github.com/whatwg/html/issues/12594)
 ("Support QUERY method in form submissions").
 
+**▶ Live demo (no install):** https://samuel-ifrs.github.io/query-form-repro/
+
 It shows that, in current browsers:
 
 - **`<form method="query">` falls back to `GET`** — the request body is silently dropped,
